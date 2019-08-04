@@ -545,7 +545,7 @@ void ICACHE_FLASH_ATTR swadgeModeButtonCallback(uint8_t state, int button, int d
             menuChangeBarProgress = 0;
         }
     }
-    else if(swadgeModeInit && NULL != swadgeModes[rtcMem.currentSwadgeMode]->fnButtonCallback)
+    if(swadgeModeInit && NULL != swadgeModes[rtcMem.currentSwadgeMode]->fnButtonCallback)
     {
         // Pass the button event to the mode
         swadgeModes[rtcMem.currentSwadgeMode]->fnButtonCallback(state, button, down);
