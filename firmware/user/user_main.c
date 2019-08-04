@@ -503,7 +503,7 @@ void ICACHE_FLASH_ATTR drawChangeMenuBar(void)
         menuChangeBarProgress += 10;
 
         // If it was held for long enough
-        if(menuChangeBarProgress == 131)
+        if(menuChangeBarProgress >= 131)
         {
             // Go back to the menu
             switchToSwadgeMode(0);
