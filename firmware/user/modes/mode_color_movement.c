@@ -1617,7 +1617,7 @@ void ICACHE_FLASH_ATTR cmNewSetup(subMethod_t subMode)
             rollEnterMode(0);
             break;
         case ROLL_3_BALLS:
-            rollEnterMode(11);
+            rollEnterMode(10);
             break;
         case TILT_A_COLOR:
             cmUseSmooth = false;

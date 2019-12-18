@@ -23,6 +23,7 @@
 #include "math.h"
 #include "buzzer.h" // music notes
 #include "hpatimer.h" //buzzer functions
+#include "embeddedout.h"
 #include "mode_music.h"
 #include "mode_color_movement.h"
 
@@ -118,6 +119,11 @@ struct
     uint8_t ledOrderInd[6];
     int LedCount;
     notePeriod_t midiNote;
+    uint8_t hueWheel;
+    uint32_t colorToShow;
+    uint8_t ledr;
+    uint8_t ledg;
+    uint8_t ledb;
     uint8_t numNotes;
     uint8_t midiScale[MAX_NUM_NOTES];
     FLOATING scxc;
@@ -519,12 +525,25 @@ led_t* ICACHE_FLASH_ATTR roll_updateDisplayComputations(int16_t xAccel, int16_t 
             roll.tf = roll.ti + roll.dt;
             // Do one step of ODE solver to dnx assigned to rhs_fun_pointer
             // Need to update accel values in parameters
+#define REACTIVE_AS_BADGE
+#ifdef REACTIVE_AS_BADGE
+            // when swadge worn as badge will be using xz plane, so will be
+            // sensitive to
+            roll.pendulumParametersRed.xAccel = roll.xAccel;
+            roll.pendulumParametersRed.yAccel = -roll.zAccel;
+            roll.pendulumParametersGreen.xAccel = roll.xAccel;
+            roll.pendulumParametersGreen.yAccel = -roll.zAccel;
+            roll.pendulumParametersBlue.xAccel = roll.xAccel;
+            roll.pendulumParametersBlue.yAccel = -roll.zAccel;
+#else
             roll.pendulumParametersRed.xAccel = roll.xAccel;
             roll.pendulumParametersRed.yAccel = roll.yAccel;
             roll.pendulumParametersGreen.xAccel = roll.xAccel;
             roll.pendulumParametersGreen.yAccel = roll.yAccel;
             roll.pendulumParametersBlue.xAccel = roll.xAccel;
             roll.pendulumParametersBlue.yAccel = roll.yAccel;
+#endif
+
             //Old but don't need pointer
             //rk4_dn1((*rhs_fun_ptrr), ti, dt, xir, xfr, numberoffirstordereqn, (FLOATING*)&pendulumParametersRed);
             //rk4_dn1((*rhs_fun_ptrg), ti, dt, xig, xfg, numberoffirstordereqn, (FLOATING*)&pendulumParametersGreen);
@@ -712,7 +731,8 @@ led_t* ICACHE_FLASH_ATTR roll_updateDisplayComputations(int16_t xAccel, int16_t 
                     if self.framecount % 1 == 0:
                         led.color = colorsys.hsv_to_rgb(self.ball.meanspeed,1,1)
             */
-
+            // cycle thru color wheel
+            roll.hueWheel += 1;
             for (uint8_t indLed = 0; indLed < USE_NUM_LEDS / GAP; indLed++)
             {
                 int16_t ledy = Ssinonlytable[((indLed << 8) * GAP / USE_NUM_LEDS + 0x80) % 256] * 28 / 1500; // from -1500 to 1500
@@ -722,11 +742,25 @@ led_t* ICACHE_FLASH_ATTR roll_updateDisplayComputations(int16_t xAccel, int16_t 
                 //roll.len = norm(roll.scxc - ledx, roll.scyc - ledy);
                 uint8_t glow = 255 * pow(1.0 - (roll.len / 56.0), 3);
                 //os_printf("%d %d %d %d %d %d %d \n",indLed, ledx, ledy, scxc, roll.scyc, roll.len, 255 - roll.len * 4);
+                roll.colorToShow = EHSVtoHEX(roll.hueWheel, 0xFF, glow);
+
+                roll.ledr = (roll.colorToShow >>  0) & 0xFF;
+                roll.ledg = (roll.colorToShow >>  8) & 0xFF;
+                roll.ledb = (roll.colorToShow >> 16) & 0xFF;
+
 
 #ifdef USE_6_LEDS
-                roll.leds[roll.ledOrderInd[GAP * indLed]].r = glow;
+                // Show leds near ball in red
+                //roll.leds[roll.ledOrderInd[GAP * indLed]].r = glow;
+                // Show leds near ball in varying color
+                roll.leds[roll.ledOrderInd[GAP * indLed]].r = roll.ledr;
+                roll.leds[roll.ledOrderInd[GAP * indLed]].g = roll.ledg;
+                roll.leds[roll.ledOrderInd[GAP * indLed]].b = roll.ledb;
 #else
                 roll.leds[GAP * indLed].r = glow;
+                roll.leds[GAP * indLed].r = roll.ledr;
+                roll.leds[GAP * indLed].g = roll.ledg;
+                roll.leds[GAP * indLed].r = b = roll.ledb;
 #endif
             }
             break;
@@ -824,9 +858,12 @@ void ICACHE_FLASH_ATTR roll_updateDisplay(void)
         case 7:
         case 9:
         case 11:
+            // Self adjusts to rest position
+            // Will become chaotic
             roll.useHighPassAccel = true;
             break;
         default:
+            // Gravity is down
             roll.useHighPassAccel = false;
             break;
     }
