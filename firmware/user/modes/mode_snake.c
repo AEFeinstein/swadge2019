@@ -669,8 +669,6 @@ void ICACHE_FLASH_ATTR snakeButtonCallback(uint8_t state __attribute__((unused))
                         os_timer_disarm(&snake.timerHandleSnakeLogic);
                         os_timer_arm(&snake.timerHandleSnakeLogic, snakeDifficulties[snake.cursorPos][0], 1);
 
-                        // Set the OLED to draw at the speed of the game
-                        setOledDrawTime(snakeDifficulties[snake.cursorPos][0]);
                         break;
                     }
                     default:
@@ -875,6 +873,9 @@ void ICACHE_FLASH_ATTR snakeMoveSnake(void)
         // Food is points
         snake.score += snake.scoreMultiplier;
 
+        // Blink the LEDs
+        led_t leds[NUM_LIN_LEDS] = {{0}};
+        setLeds(leds, sizeof(leds));
         // Play a jingle
         startBuzzerSong(&foodSfx);
 
@@ -891,9 +892,11 @@ void ICACHE_FLASH_ATTR snakeMoveSnake(void)
         // Critters are more points
         snake.score += (snake.scoreMultiplier * snake.critterTimerCount);
 
+        // Blink the LEDs
+        led_t leds[NUM_LIN_LEDS] = {{0}};
+        setLeds(leds, sizeof(leds));
         // Play a jingle
         startBuzzerSong(&critterSfx);
-
         // Clear the criter
         snake.critterTimerCount = 0;
         snake.posCritter.x = -1;
